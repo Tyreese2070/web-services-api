@@ -1,5 +1,4 @@
 import ollama
-import time
 
 def clean_ingredient(raw_input):
     try:
@@ -31,6 +30,3 @@ def clean_ingredient(raw_input):
         return response['message']['content'].strip().lower()
     except Exception as e:
         return f"Error: {str(e)}"
-
-print(clean_ingredient("a large bar of dark chocolate"))
-print(clean_ingredient("a bowl of tasty kellogs cornflakes"))
