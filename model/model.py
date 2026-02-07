@@ -1,5 +1,7 @@
 import ollama
 
+# Change to alternative recipe suggestion AI
+
 def clean_ingredient(raw_input):
     try:
         response = ollama.chat(
