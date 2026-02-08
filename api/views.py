@@ -34,7 +34,25 @@ def search_ingredients(request):
 # Add to pantry
 @api_view(['POST'])
 def add_to_pantry(request):
-    pass
+    """
+    Input: {"name": "Milk"}
+    Action: Add "Milk" to the users pantry
+    """
+    item_name = request.data.get("name")
+    if not item_name:
+        return Response({"error": "Name is required"}, status=400)
+    
+    ingredient, created = Ingredient.objects.get_or_create(name=item_name)
+    user = User.objects.filter(is_superuser=True).first() # remove later
+    if not user:
+        user = User.objects.create_user(username='admin', password='admin', is_superuser=True)
+
+    pantry_item, created = PantryItem.objects.get_or_create(user=user, ingredient=ingredient)
+
+    if created:
+        return Response({"message": f"{item_name} added to pantry"}, status=201)
+    else:
+        return Response({"message": f"{item_name} is already in pantry"}, status=200)
 
 # Suggest recipes
 @api_view(['GET'])

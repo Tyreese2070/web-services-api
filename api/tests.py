@@ -1,8 +1,10 @@
+import django
 from django.test import TestCase
 from rest_framework.test import APIClient
-from api.models import Ingredient, Recipe
+from api.models import Ingredient, Recipe, PantryItem
 from django.core.management import call_command
 from unittest.mock import patch, mock_open
+from django.contrib.auth.models import User
 import builtins
 
 # Search for ingredients test
@@ -67,3 +69,36 @@ class LoadRecipesCommandTests(TestCase):
 
         self.assertEqual(Ingredient.objects.count(), 2)
         self.assertTrue(Ingredient.objects.filter(name="pasta").exists())
+
+class AddToPantryTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_superuser(username="testuser", password="testpass")
+        self.client = APIClient()
+
+    def test_add_new_item(self):
+        """
+        Test adding a new item to the pantry that doesn't exist in the database
+        """
+        response = self.client.post('/api/pantry/add/', {'name': 'milk'}, format='json')
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["message"], "milk added to pantry")
+
+        # check database
+        self.assertTrue(Ingredient.objects.filter(name="milk").exists())
+        self.assertTrue(PantryItem.objects.filter(user=self.user, ingredient__name='milk').exists())
+    
+    def test_add_existing_item(self):
+        """
+        Test adding an item that already exists in the users pantry
+        """
+
+        ingredient = Ingredient.objects.create(name="milk")
+        PantryItem.objects.create(user=self.user, ingredient=ingredient)
+
+        response = self.client.post('/api/pantry/add/', {'name': 'milk'}, format='json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("milk is already in pantry", response.json()['message'])
+        
+        self.assertEqual(PantryItem.objects.count(), 1)
