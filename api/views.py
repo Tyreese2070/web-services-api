@@ -57,4 +57,9 @@ def add_to_pantry(request):
 # Suggest recipes
 @api_view(['GET'])
 def suggest_recipes(request):
+    """
+    search for recipes containing ingredients in the users pantry
+    rank candidates using number of matching ingredients / total ingredients in recipe
+    return the top 10 or more then add a load more button
+    """
     pass

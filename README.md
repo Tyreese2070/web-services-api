@@ -1,9 +1,18 @@
 # Food suggestion API
 
-## Data
-1. epiRecipes for recipes, includes an ingredients list: https://www.kaggle.com/datasets/shuyangli94/food-com-recipes-and-user-interactions
+# Setup
+```bash
+pip install -r requirements.txt
+```
 
-2. food.com interactions to calculate a rating for each recipe: https://www.kaggle.com/datasets/hugodarwood/epirecipes
+```bash
+python setup.py
+```
+
+## Data
+1. food.com for recipes, includes an ingredients list: https://www.kaggle.com/datasets/shuyangli94/food-com-recipes-and-user-interactions
+
+2. epirecipes interactions to calculate a rating for each recipe: https://www.kaggle.com/datasets/hugodarwood/epirecipes
 
 3. allergens - possibly allow a user to select allergens. Allows for local model to suggest alternatives: https://www.kaggle.com/datasets/uom190346a/food-ingredients-and-allergens
 
