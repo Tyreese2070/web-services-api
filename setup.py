@@ -1,5 +1,6 @@
 import os
 import zipfile
+import shutil
 import django
 from django.core.management import call_command
 from django.conf import settings
@@ -33,6 +34,21 @@ def setup_project():
             try:
                 with zipfile.ZipFile(ZIP_FILE_PATH, 'r') as zip_ref:
                     zip_ref.extractall(DATA_DIR)
+                
+                # Check for nested dataset folder and fix if exists
+                nested_dir = os.path.join(DATA_DIR, 'dataset')
+                if os.path.exists(nested_dir) and os.path.isdir(nested_dir):
+                    print("Nested folder detected. Moving files...")
+                    
+                    for filename in os.listdir(nested_dir):
+                        source = os.path.join(nested_dir, filename)
+                        dest = os.path.join(DATA_DIR, filename)
+
+                        if os.path.exists(dest):
+                            os.remove(dest)
+                        shutil.move(source, dest)
+                    os.rmdir(nested_dir)
+
                 print("Extraction complete.")
             except Exception as e:
                 print(f"Error extracting zip: {e}")
