@@ -63,3 +63,7 @@ def suggest_recipes(request):
     return the top 10 or more then add a load more button
     """
     pass
+
+ # =================== Webpages ===================
+def home(request):
+    return render(request, '../frontend/home.html')
