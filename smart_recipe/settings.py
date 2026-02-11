@@ -25,7 +25,11 @@ SECRET_KEY = 'django-insecure-=ukjip=ilhy9ia)lj0x5xpx2h$iz9%_cjkz63(coa!e8xd)!s)
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'smartrecipeapi-cqeaf6chh5endhan.francecentral-01.azurewebsites.net',
+    '127.0.0.1', 
+    'localhost'
+]
 
 
 # Application definition
@@ -120,3 +124,7 @@ USE_TZ = True
 STATIC_URL = 'static/'
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://smartrecipeapi-cqeaf6chh5endhan.francecentral-01.azurewebsites.net'
+]

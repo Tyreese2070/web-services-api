@@ -1,0 +1,14 @@
+{
+    "appService.zipIgnorePattern": [
+        "node_modules{,/**}",
+        ".venv{,/**}",
+        "venv{,/**}",
+        "env{,/**}",
+        ".git{,/**}",
+        ".vscode{,/**}",
+        "__pycache__{,/**}",
+        "*.pyc",
+        "report{,/**}"
+    ],
+    "appService.deploySubpath": "."
+}
