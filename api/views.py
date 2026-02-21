@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -62,7 +63,69 @@ def suggest_recipes(request):
     rank candidates using number of matching ingredients / total ingredients in recipe
     return the top 10 or more then add a load more button
     """
-    pass
+
+    pantry_items = PantryItem.objects.all()
+    pantry_names = [item.ingredient.name for item in pantry_items]
+
+    if not pantry_names:
+        return Response({"error": "Pantry is empty"}, status=200)
+    
+    # find recipes with a pantry item
+    recipes = Recipe.objects.filter(
+        Q(ingredients__name__in=pantry_names)
+    ).distinct()
+
+    allergens = {info.name.lower() for info in request.user.allergens.all() if info.allergens and info.allergens != "None"}
+
+    recipe_scores = []
+    for recipe in recipes:
+        try:
+            recipe_ingredients = ast.literal_eval(recipe.ingredients)
+            recipe_instructions = ast.literal_eval(recipe.steps)
+            recipe_ingredients = [i.lower() for i in recipe_ingredients]
+        except:
+            continue
+
+        matches = [ing for ing in recipe_ingredients if any(p_item in ing for p_item in pantry_names)]
+        missing = [ing for ing in recipe_ingredients if ing not in matches]
+
+        if len(recipe_ingredients) == 0:
+            match_percentage = (len(matches) / len(recipe_ingredients)) * 100
+        else:
+            match_percentage = 0
+
+        # Difficulty logic based on the number of steps
+        step_count = len(recipe_instructions)
+        if step_count < 5:
+            difficulty = "Easy"
+        elif step_count < 10:
+            difficulty = "Medium"
+        else:
+            difficulty = "Hard"
+
+        # Allergens
+        detected_allergens = set()
+        for ing in recipe_ingredients:
+            for allergen in allergens:
+                if allergen in ing:
+                    detected_allergens.add(allergen)
+        allergen_list = list(detected_allergens) if detected_allergens else ["None"]
+
+        if match_percentage > 20:
+            recipe_scores.append({
+                "id": recipe.id,
+                "name": recipe.name,
+                "difficulty": difficulty,
+                "allergens": allergen_list,
+                "match_percentage": match_percentage,
+                "you_have": matches,
+                "missing": missing,
+                "instructions": recipe_instructions
+            })
+
+        recipe_scores.sort(key=lambda x: x['match_percentage'], reverse=True)
+        
+        return JsonResponse(recipe_scores[:10], safe=False)
 
  # =================== Webpages ===================
 def home(request):
