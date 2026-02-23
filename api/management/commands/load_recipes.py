@@ -2,7 +2,7 @@ import csv
 import ast
 import os
 from django.core.management.base import BaseCommand
-from api.models import Recipe, Ingredient
+from api.models import IngredientInfo, Recipe, Ingredient
 
 class Command(BaseCommand):
     help = "Load recipes from dataset into database (RAW_recipes.csv)"
@@ -11,6 +11,28 @@ class Command(BaseCommand):
         # Setup Path
         base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
         file_path = os.path.join(base_dir, 'dataset', 'RAW_recipes.csv')
+        allergens_path = os.path.join(base_dir, 'dataset', 'food_ingredients_and_allergens.csv')
+
+        # LOAD ALLERGENS
+        if os.path.exists(allergens_path):
+            self.stdout.write(f"Reading allergens from {allergens_path}")
+            with open(allergens_path, "r", encoding="utf-8") as file:
+                reader = csv.DictReader(file)
+                info_list = []
+                for row in reader:
+                    info_list.append(IngredientInfo(
+                        name=row.get("Food Product", "").lower().strip(),
+                        category=row.get("Main Ingredient", ""),
+                        allergens=row.get("Allergens", "")))
+                    
+                    IngredientInfo.objects.bulk_create(info_list, ignore_conflicts=True)
+                    self.stdout.write(self.style.SUCCESS(f"Loaded {len(info_list)} allergens"))
+
+        else:
+            self.stdout.write(self.style.ERROR(f"Allergens file not found: {allergens_path}"))
+
+
+        # LOAD RECIPES
 
         if not os.path.exists(file_path):
             self.stdout.write(self.style.ERROR(f"File not found: {file_path}"))

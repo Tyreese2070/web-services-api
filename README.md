@@ -26,7 +26,7 @@ Table 3: recipe ingredients - many to many (link recipe id to ingredient id)
 Table 4: user pantry - CRUD store, link user id to ingredient id. Let the user update what they have
 
 ## GenAI
-Suggest substitutes for allergens
+planning
 
 ## API endpoints
 1. READ - GET /recommendations: finds recipes where the user owns the highest percentage of ingredients. Use ratings as a tie breaker or for a display order.

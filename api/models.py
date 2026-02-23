@@ -35,3 +35,14 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.title
+
+class IngredientInfo(models.Model):
+    """
+    Store information about ingredients
+    """
+    name = models.CharField(max_length=255, unique=True)
+    category = models.CharField(max_length=255, blank=True, null=True)
+    allergens = models.CharField(max_length=255, blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.allergens})"

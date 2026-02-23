@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.db.models import Q
 from django.contrib.auth.models import User
-from .models import Recipe, Ingredient, PantryItem
+from .models import IngredientInfo, Recipe, Ingredient, PantryItem
 import ast
 
 # Search for ingredients
@@ -71,17 +71,19 @@ def suggest_recipes(request):
         return Response({"error": "Pantry is empty"}, status=200)
     
     # find recipes with a pantry item
-    recipes = Recipe.objects.filter(
-        Q(ingredients__name__in=pantry_names)
-    ).distinct()
+    query = Q()
+    for name in pantry_names:
+        query |= Q(ingredients__icontains=name)
 
-    allergens = {info.name.lower() for info in request.user.allergens.all() if info.allergens and info.allergens != "None"}
+    recipes = Recipe.objects.filter(query)[:200]
+
+    allergen_map = {info.name.lower(): info.allergens for info in IngredientInfo.objects.all() if info.allergens and info.allergens.lower() != "none"}
 
     recipe_scores = []
     for recipe in recipes:
         try:
             recipe_ingredients = ast.literal_eval(recipe.ingredients)
-            recipe_instructions = ast.literal_eval(recipe.steps)
+            recipe_instructions = recipe.instructions.split("\n")
             recipe_ingredients = [i.lower() for i in recipe_ingredients]
         except:
             continue
@@ -89,7 +91,7 @@ def suggest_recipes(request):
         matches = [ing for ing in recipe_ingredients if any(p_item in ing for p_item in pantry_names)]
         missing = [ing for ing in recipe_ingredients if ing not in matches]
 
-        if len(recipe_ingredients) == 0:
+        if len(recipe_ingredients) > 0:
             match_percentage = (len(matches) / len(recipe_ingredients)) * 100
         else:
             match_percentage = 0
@@ -106,18 +108,18 @@ def suggest_recipes(request):
         # Allergens
         detected_allergens = set()
         for ing in recipe_ingredients:
-            for allergen in allergens:
-                if allergen in ing:
-                    detected_allergens.add(allergen)
+            for allergen_key, allergen_value in allergen_map.items():
+                if allergen_key in ing:
+                    detected_allergens.add(allergen_value)
         allergen_list = list(detected_allergens) if detected_allergens else ["None"]
 
-        if match_percentage > 20:
+        if match_percentage > 0:
             recipe_scores.append({
                 "id": recipe.id,
-                "name": recipe.name,
+                "title": recipe.title,
                 "difficulty": difficulty,
                 "allergens": allergen_list,
-                "match_percentage": match_percentage,
+                "match_percentage": round(match_percentage, 2),
                 "you_have": matches,
                 "missing": missing,
                 "instructions": recipe_instructions
