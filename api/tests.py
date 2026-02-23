@@ -81,8 +81,10 @@ class LoadRecipesCommandTests(TestCase):
 
         # allergen assertions
         self.assertEqual(IngredientInfo.objects.count(), 2)
-        self.assertTrue(IngredientInfo.objects.filter(name="shrimp").exists())
-        self.assertEqual(IngredientInfo.objects.get(name="shrimp").allergens, "Shellfish")
+        self.assertTrue(IngredientInfo.objects.filter(name="pasta").exists())
+        self.assertEqual(IngredientInfo.objects.get(name="pasta").allergens, "Nuts")
+        self.assertTrue(IngredientInfo.objects.filter(name="water").exists())
+        self.assertEqual(IngredientInfo.objects.get(name="water").allergens, "None")
 
 class AddToPantryTests(TestCase):
     def setUp(self):
