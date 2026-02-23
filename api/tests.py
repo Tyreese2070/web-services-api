@@ -1,7 +1,7 @@
 import django
 from django.test import TestCase
 from rest_framework.test import APIClient
-from api.models import Ingredient, Recipe, PantryItem
+from api.models import Ingredient, IngredientInfo, Recipe, PantryItem
 from django.core.management import call_command
 from unittest.mock import patch, mock_open
 from django.contrib.auth.models import User
@@ -43,10 +43,17 @@ class LoadRecipesCommandTests(TestCase):
         """
         Test that the management command parses a CSV row correctly.
         """
-        # mock data
+        # mock data for recipes
         csv_content = (
             "name,id,minutes,contributor_id,submitted,tags,nutrition,n_steps,steps,description,ingredients,n_ingredients\n"
             "Test Pasta,123,30,44,2020-01-01,[],[],5,\"['Boil water', 'Cook pasta']\",\"Yummy\",\"['pasta', 'water']\",2"
+        )
+
+        # mock data for allergens
+        allergens_content = (
+            "Food Product,Main Ingredient,Allergens\n"
+            "pasta,Pasta,Nuts\n"
+            "water,Water,None\n"
         )
 
         original_open = builtins.open
@@ -54,6 +61,8 @@ class LoadRecipesCommandTests(TestCase):
         def open_side_effect(file, mode='r', *args, **kwargs):
             if "RAW_recipes.csv" in str(file):
                 return mock_open(read_data=csv_content)(file, mode, *args, **kwargs)
+            elif "food_ingredients_and_allergens.csv" in str(file):
+                return mock_open(read_data=allergens_content)(file, mode, *args, **kwargs)
             else:
                 return original_open(file, mode, *args, **kwargs)
 
@@ -69,6 +78,11 @@ class LoadRecipesCommandTests(TestCase):
 
         self.assertEqual(Ingredient.objects.count(), 2)
         self.assertTrue(Ingredient.objects.filter(name="pasta").exists())
+
+        # allergen assertions
+        self.assertEqual(IngredientInfo.objects.count(), 2)
+        self.assertTrue(IngredientInfo.objects.filter(name="shrimp").exists())
+        self.assertEqual(IngredientInfo.objects.get(name="shrimp").allergens, "Shellfish")
 
 class AddToPantryTests(TestCase):
     def setUp(self):
