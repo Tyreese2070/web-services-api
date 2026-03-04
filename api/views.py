@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -7,10 +7,14 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from .models import IngredientInfo, Recipe, Ingredient, PantryItem
 import ast
+from django.contrib.auth import authenticate, login, logout
+from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.csrf import ensure_csrf_cookie
 
 # Search for ingredients
 @api_view(['GET'])
-@permission_classes([AllowAny])
+@permission_classes([IsAuthenticated])
 def search_ingredients(request):
     """
     Input: /api/ingredients/search/?q=beans
@@ -34,6 +38,7 @@ def search_ingredients(request):
 
 # Add to pantry
 @api_view(['POST'])
+@permission_classes([IsAuthenticated])
 def add_to_pantry(request):
     """
     Input: {"name": "Milk"}
@@ -44,10 +49,7 @@ def add_to_pantry(request):
         return Response({"error": "Name is required"}, status=400)
     
     ingredient, created = Ingredient.objects.get_or_create(name=item_name)
-    user = User.objects.filter(is_superuser=True).first() # remove later
-    if not user:
-        user = User.objects.create_user(username='admin', password='admin', is_superuser=True)
-
+    user = request.user
     pantry_item, created = PantryItem.objects.get_or_create(user=user, ingredient=ingredient)
 
     if created:
@@ -57,6 +59,7 @@ def add_to_pantry(request):
 
 # Suggest recipes
 @api_view(['GET'])
+@permission_classes([IsAuthenticated])
 def suggest_recipes(request):
     """
     search for recipes containing ingredients in the users pantry
@@ -130,5 +133,59 @@ def suggest_recipes(request):
         return JsonResponse(recipe_scores[:10], safe=False)
 
  # =================== Webpages ===================
+@login_required(login_url='/login/')
 def home(request):
-    return render(request, '../frontend/home.html')
+    return render(request, '../frontend/templates/home.html')
+
+@ensure_csrf_cookie
+def login_page(request):
+    """Serve the login page"""
+    return render(request, '../frontend/templates/login.html')
+
+@ensure_csrf_cookie
+def register_page(request):
+    """Serve the register page"""
+    return render(request, '../frontend/templates/register.html')
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def register_user(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+    first_name = request.data.get('first_name')
+    last_name = request.data.get('last_name')
+    email = request.data.get('email')
+
+    if not username or not password or not first_name or not last_name or not email:
+        return Response({{"Error": "All fields are required"}}, status=400)
+    if User.objects.filter(username=username).exists():
+        return Response({{"Error": "Username already exists"}}, status=400)
+    if User.objects.filter(email=email).exists():
+        return Response({{"Error": "Email already registered"}}, status=400)
+    
+    user = User.objects.create_user(
+        username=username,
+        password=password,
+        first_name=first_name,
+        last_name=last_name,
+        email=email
+    )
+    return Response(({"Success": "User registered successfully"}), status=201)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def login_user(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        return Response(({"Success": "Logged in successfully"}), status=200)
+    else:
+        return Response(({"Error": "Incorrect username or password"}), status=400)
+    
+@api_view(['POST'])
+def logout_user(request):
+    logout(request)
+    return Response(({"Success": "Logged out successfully"}), status=200)
