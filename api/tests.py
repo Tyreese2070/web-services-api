@@ -11,6 +11,8 @@ import builtins
 class SearchIngredientsTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        self.user = User.objects.create_user(username="testuser", password="testpass")
+        self.client.force_authenticate(user=self.user)
         Ingredient.objects.create(name="apple")
         Ingredient.objects.create(name="pineapple")
         Ingredient.objects.create(name="apple pie")
@@ -88,8 +90,9 @@ class LoadRecipesCommandTests(TestCase):
 
 class AddToPantryTests(TestCase):
     def setUp(self):
-        self.user = User.objects.create_superuser(username="testuser", password="testpass")
+        self.user = User.objects.create_user(username="testuser", password="testpass")
         self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
 
     def test_add_new_item(self):
         """
