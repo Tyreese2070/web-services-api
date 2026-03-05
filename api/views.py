@@ -131,6 +131,53 @@ def suggest_recipes(request):
         recipe_scores.sort(key=lambda x: x['match_percentage'], reverse=True)
         
         return JsonResponse(recipe_scores[:10], safe=False)
+    
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_pantry(request):
+    """
+    Get the users pantry items
+    """
+    user = request.user
+    pantry_items = PantryItem.objects.filter(user=user)
+    data = [{"name": item.ingredient.name, "quantity": item.quantity} for item in pantry_items]
+    return Response(data, status=200)
+
+@api_view(['PUT'])
+@permission_classes([IsAuthenticated])
+def update_pantry_item(request):
+    """
+    Update the quantity of a pantry item
+    """
+    item_name = request.data.get("name")
+    quantity = request.data.get("quantity")
+
+    if not item_name or quantity is None:
+        return Response({"error": "Name and quantity are required"}, status=400)
+    try:
+        pantry_item = PantryItem.objects.get(user=request.user, ingredient__name=item_name)
+        pantry_item.quantity = quantity
+        pantry_item.save()
+        return Response({"message": f"{item_name} quantity updated to {quantity}"}, status=200)
+    except PantryItem.DoesNotExist:
+        return Response({"error": f"{item_name} not found in pantry"}, status=404)
+    
+@api_view(['DELETE'])
+@permission_classes([IsAuthenticated])
+def delete_pantry_item(request):
+    """
+    Delete a pantry item
+    """
+    item_name = request.data.get("name")
+
+    if not item_name:
+        return Response({"error": "Name is required"}, status=400)
+    try:
+        pantry_item = PantryItem.objects.get(user=request.user, ingredient__name=item_name)
+        pantry_item.delete()
+        return Response({"message": f"{item_name} removed from pantry"}, status=200)
+    except PantryItem.DoesNotExist:
+        return Response({"error": f"{item_name} not found in pantry"}, status=404)
 
  # =================== Webpages ===================
 @login_required(login_url='/login/')
@@ -170,7 +217,7 @@ def register_user(request):
         last_name=last_name,
         email=email
     )
-    return Response(({"Success": "User registered successfully"}), status=201)
+    return Response({"Success": "User registered successfully"}, status=201)
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
