@@ -1,13 +1,10 @@
-<h1>Home</h1>
-<p>Temporary - go to /admin</p>
-
 <!-- 
 Page Layout:
-Welcome message (users name)
 Button to view pantry
     -> List of ingredients in pantry
     -> Add to pantry (dropdown seach)
     -> Delete from pantry
+    -> update pantry (change quantity)
 Button to view recipes
     -> choose a recipe from ingredients within the users pantry
     -> from recipe show ingredients and instructions
@@ -16,3 +13,44 @@ Button to view recipes
 Button to account settings
     -> change email
     -> change password
+
+logout button
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+</head>
+<body>
+    <div>
+        <h1>Smart Pantry</h1>
+        <button onclick="logout()">Logout</button>
+    </div>
+
+    <div id="pantry-section">
+        <h2>Manage Pantry</h2>
+
+        <div>
+            <input type="text" id="ingredient-search" placeholder="Search for ingredients...">
+            <button onclick="addToPantry()">Add to Pantry</button>
+        </div>
+
+        <div id="pantry-list">
+            <p>Loading pantry</p>
+        </div>
+
+        <div id="recipe-section">
+            <h2>Suggest Recipes</h2>
+            <button onclick="getRecipes()">Find Recipes</button>
+
+            <div id="recipes-list">
+                <p>Click to see recipes</p>
+            </div>
+        </div>
+    </div>
+<script src="/static/scripts/home.js"></script>
+</body>
+</html>
