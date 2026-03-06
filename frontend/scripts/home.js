@@ -39,9 +39,9 @@ function loadPantry() {
                 const qty = item.quantity ? item.quantity : 'Not specified';
                 
                 div.innerHTML = `
-                    <div><strong>${item.name}</strong> (Qty: ${qty})</div>
+                    <div><strong>${item.name}</strong> (Quantity: ${qty})</div>
                     <div>
-                        <button onclick="updatePantry('${item.name}')">Update Qty</button>
+                        <button onclick="updatePantry('${item.name}')">Update Quantity</button>
                         <button onclick="removeFromPantry('${item.name}')">Delete</button>
                     </div>
                 `;
