@@ -13,3 +13,8 @@ python setup.py
 ```bash
 python manage.py runserver
 ```
+
+# Using the live azure site
+Visit the website here: [SmartRecipe][link].
+
+[link]: https://stackoverflow.com
