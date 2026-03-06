@@ -1,4 +1,3 @@
-// --- UTILS ---
 function getCookie(name) {
     let cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -15,7 +14,7 @@ function getCookie(name) {
 }
 const csrftoken = getCookie('csrftoken');
 
-// --- LOGOUT ---
+// LOGOUT
 function logout() {
     fetch('/api/logout/', {
         method: 'POST',
@@ -23,8 +22,7 @@ function logout() {
     }).then(() => { window.location.href = '/login/'; });
 }
 
-// --- PANTRY CRUD ---
-// READ
+// PANTRY
 function loadPantry() {
     fetch('/api/pantry/')
         .then(res => res.json())
@@ -61,7 +59,13 @@ function addToPantry() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
         body: JSON.stringify({ name: name })
-    }).then(() => {
+    })
+    .then(res => res.json().then(data => ({ status: res.status, body: data })))
+    .then(({ status, body }) => {
+        if (status !== 200 && status !== 201) {
+            alert(body.error || 'Unable to add ingredient');
+            return;
+        }
         document.getElementById('new-item-name').value = '';
         loadPantry(); // Refresh list
     });
@@ -83,16 +87,16 @@ function updatePantry(name) {
 function removeFromPantry(name) {
     if(!confirm(`Remove ${name} from pantry?`)) return;
 
-    fetch('/api/pantry/remove/', {
+    fetch('/api/pantry/delete/', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrftoken },
         body: JSON.stringify({ name: name })
     }).then(() => loadPantry());
 }
 
-// --- RECIPES ---
+// RECIPES
 function getRecipes() {
-    const list = document.getElementById('recipe-list');
+    const list = document.getElementById('recipes-list');
     list.innerHTML = '<p>Calculating matches...</p>';
 
     fetch('/api/recipes/suggest/')
@@ -135,5 +139,55 @@ function getRecipes() {
         });
 }
 
-// Initialize page
+// Ingredient dropdown
+const ingredientInput = document.getElementById('new-item-name');
+const dropdownContainer = document.createElement('div');
+dropdownContainer.id = 'ingredient-dropdown';
+dropdownContainer.className = 'dropdown-list';
+let dropdownOpen = false;
+
+if (ingredientInput) {
+    ingredientInput.parentElement.appendChild(dropdownContainer);
+    
+    ingredientInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        if (query.length < 2) {
+            dropdownContainer.innerHTML = '';
+            dropdownOpen = false;
+            return;
+        }
+        
+        fetch(`/api/ingredients/search/?q=${encodeURIComponent(query)}`)
+            .then(res => res.json())
+            .then(data => {
+                dropdownContainer.innerHTML = '';
+                if (data.length === 0) {
+                    dropdownOpen = false;
+                    return;
+                }
+                
+                data.forEach(ingredient => {
+                    const item = document.createElement('div');
+                    item.className = 'dropdown-item';
+                    item.textContent = ingredient;
+                    item.onclick = function() {
+                        ingredientInput.value = ingredient;
+                        dropdownContainer.innerHTML = '';
+                        dropdownOpen = false;
+                    };
+                    dropdownContainer.appendChild(item);
+                });
+                dropdownOpen = true;
+            });
+    });
+    
+    document.addEventListener('click', function(e) {
+        if (e.target !== ingredientInput && !dropdownContainer.contains(e.target)) {
+            dropdownContainer.innerHTML = '';
+            dropdownOpen = false;
+        }
+    });
+}
+
 window.onload = loadPantry;

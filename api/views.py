@@ -7,6 +7,7 @@ from django.db.models import Q
 from django.contrib.auth.models import User
 from .models import IngredientInfo, Recipe, Ingredient, PantryItem
 import ast
+import re
 from django.contrib.auth import authenticate, login, logout
 from rest_framework.permissions import IsAuthenticated
 from django.contrib.auth.decorators import login_required
@@ -48,14 +49,18 @@ def add_to_pantry(request):
     if not item_name:
         return Response({"error": "Name is required"}, status=400)
     
-    ingredient, created = Ingredient.objects.get_or_create(name=item_name)
+    # Only allow existing ingredients
+    ingredient = Ingredient.objects.filter(name__iexact=item_name).first()
+    if not ingredient:
+        return Response({"error": f"Ingredient '{item_name}' not recognized"}, status=400)
+    
     user = request.user
     pantry_item, created = PantryItem.objects.get_or_create(user=user, ingredient=ingredient)
 
     if created:
-        return Response({"message": f"{item_name} added to pantry"}, status=201)
+        return Response({"message": f"{ingredient.name} added to pantry"}, status=201)
     else:
-        return Response({"message": f"{item_name} is already in pantry"}, status=200)
+        return Response({"message": f"{ingredient.name} is already in pantry"}, status=200)
 
 # Suggest recipes
 @api_view(['GET'])
@@ -67,7 +72,7 @@ def suggest_recipes(request):
     return the top 10 or more then add a load more button
     """
 
-    pantry_items = PantryItem.objects.all()
+    pantry_items = PantryItem.objects.filter(user=request.user)
     pantry_names = [item.ingredient.name for item in pantry_items]
 
     if not pantry_names:
@@ -76,7 +81,9 @@ def suggest_recipes(request):
     # find recipes with a pantry item
     query = Q()
     for name in pantry_names:
-        query |= Q(ingredients__icontains=name)
+        # escape and wrap with word boundaries
+        pattern = r"\b" + re.escape(name) + r"\b"
+        query |= Q(ingredients__iregex=pattern)
 
     recipes = Recipe.objects.filter(query)[:200]
 
@@ -91,7 +98,12 @@ def suggest_recipes(request):
         except:
             continue
 
-        matches = [ing for ing in recipe_ingredients if any(p_item in ing for p_item in pantry_names)]
+        matches = []
+        for ing in recipe_ingredients:
+            for p_item in pantry_names:
+                if re.search(r'\b' + re.escape(p_item.lower()) + r'\b', ing):
+                    matches.append(ing)
+                    break
         missing = [ing for ing in recipe_ingredients if ing not in matches]
 
         if len(recipe_ingredients) > 0:
@@ -127,10 +139,9 @@ def suggest_recipes(request):
                 "missing": missing,
                 "instructions": recipe_instructions
             })
-
-        recipe_scores.sort(key=lambda x: x['match_percentage'], reverse=True)
-        
-        return JsonResponse(recipe_scores[:10], safe=False)
+    
+    recipe_scores.sort(key=lambda x: x['match_percentage'], reverse=True)
+    return JsonResponse(recipe_scores[:10], safe=False)
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
