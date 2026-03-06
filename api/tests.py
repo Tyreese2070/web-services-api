@@ -96,16 +96,16 @@ class AddToPantryTests(TestCase):
 
     def test_add_new_item(self):
         """
-        Test adding a new item to the pantry that doesn't exist in the database
+        Test that a user cannot create a new ingredient
         """
         response = self.client.post('/api/pantry/add/', {'name': 'milk'}, format='json')
 
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.json()["message"], "milk added to pantry")
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()["error"], "Ingredient 'milk' not recognized")
 
         # check database
-        self.assertTrue(Ingredient.objects.filter(name="milk").exists())
-        self.assertTrue(PantryItem.objects.filter(user=self.user, ingredient__name='milk').exists())
+        self.assertFalse(Ingredient.objects.filter(name="milk").exists())
+        self.assertFalse(PantryItem.objects.filter(user=self.user, ingredient__name='milk').exists())
     
     def test_add_existing_item(self):
         """
