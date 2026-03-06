@@ -17,4 +17,4 @@ python manage.py runserver
 # Using the live azure site
 Visit the website here: [SmartRecipe][link].
 
-[link]: https://stackoverflow.com
+[link]: smartrecipeapi-cqeaf6chh5endhan.francecentral-01.azurewebsites.net
