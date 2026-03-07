@@ -40,7 +40,11 @@
     <nav class="navbar navbar-dark bg-dark mb-4">
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">Smart Pantry</span>
-            <button class="btn btn-outline-light" onclick="logout()">Logout</button>
+            <div class="d-flex align-items-center">
+                <span class="navbar-text me-3 text-light">Logged in as: {{ user.username }}</span>
+                <button class="btn btn-outline-light me-2" onclick="window.location.href='/account/'">Manage Account</button>
+                <button class="btn btn-outline-light" onclick="logout()">Logout</button>
+            </div>
         </div>
     </nav>
 

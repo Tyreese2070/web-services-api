@@ -219,17 +219,22 @@ def delete_pantry_item(request):
  # =================== Webpages ===================
 @login_required(login_url='/login/')
 def home(request):
-    return render(request, '../frontend/templates/home.html')
+    return render(request, '../frontend/templates/home.html', {'user': request.user})
 
 @ensure_csrf_cookie
 def login_page(request):
-    """Serve the login page"""
+    """Login page"""
     return render(request, '../frontend/templates/login.html')
 
 @ensure_csrf_cookie
 def register_page(request):
-    """Serve the register page"""
+    """Register page"""
     return render(request, '../frontend/templates/register.html')
+
+@login_required(login_url='/login/')
+def account_page(request):
+    """Account details page"""
+    return render(request, '../frontend/templates/account.html')
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -241,11 +246,11 @@ def register_user(request):
     email = request.data.get('email')
 
     if not username or not password or not first_name or not last_name or not email:
-        return Response({{"Error": "All fields are required"}}, status=400)
+        return Response({"Error": "All fields are required"}, status=400)
     if User.objects.filter(username=username).exists():
-        return Response({{"Error": "Username already exists"}}, status=400)
+        return Response({"Error": "Username already exists"}, status=400)
     if User.objects.filter(email=email).exists():
-        return Response({{"Error": "Email already registered"}}, status=400)
+        return Response({"Error": "Email already registered"}, status=400)
     
     user = User.objects.create_user(
         username=username,
@@ -273,3 +278,25 @@ def login_user(request):
 def logout_user(request):
     logout(request)
     return Response(({"Success": "Logged out successfully"}), status=200)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def update_account(request):
+    new_username = request.data.get('new_username')
+    new_password = request.data.get('new_password')
+    confirm_password = request.data.get('confirm_password')
+
+    if new_password and new_password != confirm_password:
+        return Response({"error": "Passwords do not match"}, status=400)
+    if new_password and len(new_password) <= 6:
+        return Response({"error": "Password must be longer than 6 characters"}, status=400)
+    
+    user = request.user
+    if new_username and new_username != user.username:
+        if User.objects.filter(username=new_username).exists():
+            return Response({"error": "Username already taken"}, status=400)
+        user.username = new_username
+    if new_password:
+        user.set_password(new_password)
+    user.save()
+    return Response({"success": "Account updated successfully"}, status=200)
