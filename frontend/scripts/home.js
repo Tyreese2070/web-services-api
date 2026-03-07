@@ -115,17 +115,17 @@ function getRecipes() {
                 // Format Allergens
                 let allergenHtml = '';
                 if (recipe.allergens[0] !== "None") {
-                    allergenHtml = `<span>⚠️ Contains: ${recipe.allergens.join(', ')}</span>`;
+                    allergenHtml = `<span style="color: red;">Possible Allergens: ${recipe.allergens.join(', ')}</span>`;
                 }
 
                 div.innerHTML = `
                     <h3>${recipe.title} <span>(${recipe.match_percentage}% Match)</span></h3>
                     <div>
                         <span>Difficulty: <strong>${recipe.difficulty}</strong></span>
-                        ${allergenHtml}
                     </div>
                     <p><strong>You have:</strong> <span>${recipe.you_have.join(', ')}</span></p>
                     <p><strong>Missing:</strong> <span>${recipe.missing.join(', ')}</span></p>
+                    ${allergenHtml}
                     <details>
                         <summary><strong>View Instructions</strong></summary>
                         <ol>

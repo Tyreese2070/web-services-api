@@ -87,7 +87,32 @@ def suggest_recipes(request):
 
     recipes = Recipe.objects.filter(query)[:200]
 
-    allergen_map = {info.name.lower(): info.allergens for info in IngredientInfo.objects.all() if info.allergens and info.allergens.lower() != "none"}
+    # Allergens mapping
+    common_allergens = {
+        "milk": "dairy",
+        "cheese": "dairy",
+        "butter": "dairy",
+        "yogurt": "dairy",
+        "cream": "dairy",
+        "soy": "soy",
+        "soya": "soy",
+        "wheat": "wheat",
+        "flour": "wheat",
+        "bread": "wheat",
+        "pasta": "wheat",
+        "egg": "egg",
+        "eggs": "egg",
+        "peanut": "peanut",
+        "almond": "tree nut",
+        "walnut": "tree nut",
+        "cashew": "tree nut",
+        "fish": "fish",
+        "salmon": "fish",
+        "tuna": "fish",
+        "shrimp": "shellfish",
+        "crab": "shellfish",
+        "lobster": "shellfish",
+    }
 
     recipe_scores = []
     for recipe in recipes:
@@ -123,9 +148,10 @@ def suggest_recipes(request):
         # Allergens
         detected_allergens = set()
         for ing in recipe_ingredients:
-            for allergen_key, allergen_value in allergen_map.items():
-                if allergen_key in ing:
-                    detected_allergens.add(allergen_value)
+            words = ing.split()
+            for word in words:
+                if word in common_allergens:
+                    detected_allergens.add(common_allergens[word])
         allergen_list = list(detected_allergens) if detected_allergens else ["None"]
 
         if match_percentage > 0:
