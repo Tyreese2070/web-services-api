@@ -16,6 +16,10 @@ function getCookie(name) {
 document.getElementById('loginForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Hide previous messages
+    document.getElementById('error-message').style.display = 'none';
+    document.getElementById('success-message').style.display = 'none';
+    
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value.trim();
     

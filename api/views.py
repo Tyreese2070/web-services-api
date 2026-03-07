@@ -270,9 +270,9 @@ def login_user(request):
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        return Response(({"Success": "Logged in successfully"}), status=200)
+        return Response({"Success": "Logged in successfully"}, status=200)
     else:
-        return Response(({"Error": "Incorrect username or password"}), status=400)
+        return Response({"Error": "Incorrect username or password"}, status=400)
     
 @api_view(['POST'])
 def logout_user(request):

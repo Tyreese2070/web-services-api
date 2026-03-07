@@ -16,6 +16,10 @@ function getCookie(name) {
 document.getElementById('registerForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     
+    // Hide previous messages
+    document.getElementById('error-message').style.display = 'none';
+    document.getElementById('success-message').style.display = 'none';
+    
     const firstName = document.getElementById('first-name').value.trim();
     const lastName = document.getElementById('last-name').value.trim();
     const email = document.getElementById('email').value.trim();
