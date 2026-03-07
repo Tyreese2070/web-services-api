@@ -71,8 +71,9 @@ def suggest_recipes(request):
     """
     search for recipes containing ingredients in the users pantry
     rank candidates using number of matching ingredients / total ingredients in recipe
-    return the top 10 or more then add a load more button
+    return the top recipes up to the limit
     """
+    limit = int(request.GET.get('limit', 10))
 
     pantry_items = PantryItem.objects.filter(user=request.user)
     pantry_names = [item.ingredient.name for item in pantry_items]
@@ -129,6 +130,13 @@ def suggest_recipes(request):
         "lobster": "shellfish",
     }
 
+    # Allergens mapping from db (overrides common mapping if exists)
+    allergen_map = {**common_allergens}
+    for info in IngredientInfo.objects.all():
+        if info.allergens and info.allergens.lower() != "none":
+            key = info.name.lower().strip()
+            allergen_map[key] = info.allergens
+
     recipe_scores = []
     for recipe in recipes:
         try:
@@ -163,10 +171,10 @@ def suggest_recipes(request):
         # Allergens
         detected_allergens = set()
         for ing in recipe_ingredients:
-            words = ing.split()
-            for word in words:
-                if word in common_allergens:
-                    detected_allergens.add(common_allergens[word])
+            # check every mapping key as substring
+            for allergen_key, allergen_value in allergen_map.items():
+                if allergen_key in ing:
+                    detected_allergens.add(allergen_value)
         allergen_list = list(detected_allergens) if detected_allergens else ["None"]
 
         if match_percentage > 0:
@@ -191,7 +199,7 @@ def suggest_recipes(request):
             unique_scores.append(score)
             seen.add(score['title'])
     
-    return JsonResponse(unique_scores[:10], safe=False)
+    return JsonResponse(unique_scores[:limit], safe=False)
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])

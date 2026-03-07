@@ -95,11 +95,15 @@ function removeFromPantry(name) {
 }
 
 // RECIPES
+// RECIPES
+let currentLimit = 10;
+
 function getRecipes() {
+    currentLimit = 10;
     const list = document.getElementById('recipes-list');
     list.innerHTML = '<p>Calculating matches...</p>';
 
-    fetch('/api/recipes/suggest/')
+    fetch('/api/recipes/suggest/?limit=' + currentLimit)
         .then(res => res.json())
         .then(data => {
             list.innerHTML = '';
@@ -108,34 +112,62 @@ function getRecipes() {
                 return;
             }
 
-            data.forEach(recipe => {
-                const div = document.createElement('div');
-                div.className = 'recipe-card';
-                
-                // Format Allergens
-                let allergenHtml = '';
-                if (recipe.allergens[0] !== "None") {
-                    allergenHtml = `<span style="color: red;">Possible Allergens: ${recipe.allergens.join(', ')}</span>`;
-                }
+            displayRecipes(data);
+            const viewMoreBtn = document.getElementById('view-more-btn');
+            if (data.length === currentLimit) {
+                viewMoreBtn.style.display = 'block';
+            } else {
+                viewMoreBtn.style.display = 'none';
+            }
+        });
+}
 
-                div.innerHTML = `
-                    <h3>${recipe.title} <span>(${recipe.match_percentage}% Match)</span></h3>
-                    <div>
-                        <span>Difficulty: <strong>${recipe.difficulty}</strong></span>
-                    </div>
-                    <p><strong>You have:</strong> <span>${recipe.you_have.join(', ')}</span></p>
-                    <p><strong>Missing:</strong> <span>${recipe.missing.join(', ')}</span></p>
-                    ${allergenHtml}
-                    <details>
-                        <summary><strong>View Instructions</strong></summary>
-                        <ol>
-                            ${recipe.instructions.map(step => `<li>${step}</li>`).join('')}
-                        </ol>
-                    </details>
-                    <hr>
-                `;
-                list.appendChild(div);
-            });
+function displayRecipes(recipes) {
+    const list = document.getElementById('recipes-list');
+    recipes.forEach(recipe => {
+        const div = document.createElement('div');
+        div.className = 'recipe-card';
+        
+        // Format Allergens
+        let allergenHtml = '';
+        if (recipe.allergens && recipe.allergens[0] !== "None") {
+            allergenHtml = `<p><strong>Allergens:</strong> ${recipe.allergens.join(', ')}</p>`;
+        }
+
+        div.innerHTML = `
+            <h3>${recipe.title} <span>(${recipe.match_percentage}% Match)</span></h3>
+            <p><strong>Difficulty:</strong> ${recipe.difficulty}</p>
+            ${allergenHtml}
+            <p><strong>You have:</strong> ${recipe.you_have.join(', ')}</p>
+            <p><strong>Missing:</strong> ${recipe.missing.join(', ')}</p>
+            <details>
+                <summary><strong>View Instructions</strong></summary>
+                <ol>
+                    ${recipe.instructions.map(step => `<li>${step}</li>`).join('')}
+                </ol>
+            </details>
+            <hr>
+        `;
+        list.appendChild(div);
+    });
+}
+
+function loadMoreRecipes() {
+    const previousLength = document.querySelectorAll('.recipe-card').length;
+    currentLimit += 10;
+    fetch('/api/recipes/suggest/?limit=' + currentLimit)
+        .then(res => res.json())
+        .then(data => {
+            if (data.length > previousLength) {
+                const newRecipes = data.slice(previousLength);
+                displayRecipes(newRecipes);
+            }
+            const viewMoreBtn = document.getElementById('view-more-btn');
+            if (data.length === currentLimit) {
+                viewMoreBtn.style.display = 'block';
+            } else {
+                viewMoreBtn.style.display = 'none';
+            }
         });
 }
 
