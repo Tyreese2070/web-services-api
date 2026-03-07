@@ -3,7 +3,9 @@ from django.shortcuts import render, redirect
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Case, When, IntegerField, Q
+import operator
+from functools import reduce
 from django.contrib.auth.models import User
 from .models import IngredientInfo, Recipe, Ingredient, PantryItem
 import ast
@@ -78,14 +80,27 @@ def suggest_recipes(request):
     if not pantry_names:
         return Response({"error": "Pantry is empty"}, status=200)
     
-    # find recipes with a pantry item
+    # --- NEW SMARTER DB QUERY ---
     query = Q()
+    match_conditions = []
+    
     for name in pantry_names:
-        # escape and wrap with word boundaries
-        pattern = r"\b" + re.escape(name) + r"\b"
-        query |= Q(ingredients__iregex=pattern)
+        query |= Q(ingredients__icontains=name)
+        # Give the recipe +1 database point if it contains this specific ingredient
+        match_conditions.append(
+            Case(When(ingredients__icontains=name, then=1), default=0, output_field=IntegerField())
+        )
 
-    recipes = Recipe.objects.filter(query)[:200]
+    if match_conditions:
+        # Add up the points for every recipe
+        total_matches = reduce(operator.add, match_conditions)
+        
+        # Filter, Annotate (Score), Order by highest score, THEN limit to 200
+        recipes = Recipe.objects.filter(query).distinct().annotate(
+            match_count=total_matches
+        ).order_by('-match_count')[:200]
+    else:
+        recipes = []
 
     # Allergens mapping
     common_allergens = {
@@ -126,7 +141,7 @@ def suggest_recipes(request):
         matches = []
         for ing in recipe_ingredients:
             for p_item in pantry_names:
-                if re.search(r'\b' + re.escape(p_item.lower()) + r'\b', ing):
+                if p_item in ing:
                     matches.append(ing)
                     break
         missing = [ing for ing in recipe_ingredients if ing not in matches]
@@ -167,7 +182,16 @@ def suggest_recipes(request):
             })
     
     recipe_scores.sort(key=lambda x: x['match_percentage'], reverse=True)
-    return JsonResponse(recipe_scores[:10], safe=False)
+    
+    # Remove duplicates based on title
+    seen = set()
+    unique_scores = []
+    for score in recipe_scores:
+        if score['title'] not in seen:
+            unique_scores.append(score)
+            seen.add(score['title'])
+    
+    return JsonResponse(unique_scores[:10], safe=False)
     
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
