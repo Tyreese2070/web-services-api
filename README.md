@@ -1,7 +1,13 @@
 # Food suggestion API
+# API Documentation
+[View API Documentation](./docs/api_docs.pdf)
+
+Note: If you cannot view the pdf, there is also a markdown version in the same directory.
 
 # Setup
 ```bash
+git clone https://github.com/Tyreese2070/web-services-api.git
+
 pip install -r requirements.txt
 ```
 
