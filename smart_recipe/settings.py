@@ -140,3 +140,5 @@ CORS_ALLOW_ALL_ORIGINS = True
 CSRF_TRUSTED_ORIGINS = [
     'https://smartrecipeapi-cqeaf6chh5endhan.francecentral-01.azurewebsites.net'
 ]
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

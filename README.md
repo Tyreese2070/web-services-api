@@ -5,13 +5,23 @@
 Note: If you cannot view the pdf, there is also a markdown version in the same directory.
 
 # Setup
+Python 3.10 is required to use /admin dashboard without errors.
+
+Python 3.10 or later can be used just to use the site. Remove 3.10 from the venv initialisation to use the current version of python on your computer.
+
 ```bash
 git clone https://github.com/Tyreese2070/web-services-api.git
+cd web-services-api
+
+# For Windows:
+py -3.10 -m venv .venv
+.venv\Scripts\activate
+
+# For Mac/Linux:
+python3.10 -m venv .venv
+source .venv/bin/activate
 
 pip install -r requirements.txt
-```
-
-```bash
 python setup.py
 ```
 
@@ -20,10 +30,14 @@ python setup.py
 python manage.py runserver
 ```
 
-# Using the live azure site
-Visit the website here: [SmartRecipe][link].
+The terminal should say that it has started a development server, visit that link to view the site.
 
-[link]: smartrecipeapi-cqeaf6chh5endhan.francecentral-01.azurewebsites.net
+Example:
+
+```Starting development server at http://127.0.0.1:8000/```
+
+# Using the live azure site
+Visit the website here: https://smartrecipeapi-cqeaf6chh5endhan.francecentral-01.azurewebsites.net
 
 # Usage
 
@@ -55,8 +69,9 @@ The difficulty is based on the number of steps required to cook.
 Users can logout or update their username or password by pressing one of the buttons on the top navigation menu.
 
 # Dataset Sources
-1.
-2.
+1. Recipes and ingredients: https://www.kaggle.com/datasets/shuyangli94/food-com-recipes-and-user-interactions
+
+2. Allergens: https://www.kaggle.com/datasets/uom190346a/food-ingredients-and-allergens
 
 # Issues
 Allergens sometimes appear twice (e.g. "Peanut" and "peanuts")
