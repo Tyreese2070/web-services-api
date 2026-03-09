@@ -121,3 +121,177 @@ class AddToPantryTests(TestCase):
         self.assertIn("milk is already in pantry", response.json()['message'])
         
         self.assertEqual(PantryItem.objects.count(), 1)
+
+# Authentication Tests
+class AuthTests(TestCase):
+    """Covers registration, login, logout and account update endpoints."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_register_login_logout_flow(self):
+        # registration
+        resp = self.client.post('/api/register/', {
+            'username': 'alice',
+            'password': 'strongpass',
+            'first_name': 'Alice',
+            'last_name': 'W',
+            'email': 'alice@example.com'
+        }, format='json')
+        self.assertEqual(resp.status_code, 201)
+        self.assertIn('Success', resp.json())
+
+        # duplicate username
+        resp2 = self.client.post('/api/register/', {
+            'username': 'alice',
+            'password': 'foo',
+            'first_name': 'A',
+            'last_name': 'B',
+            'email': 'other@example.com'
+        }, format='json')
+        self.assertEqual(resp2.status_code, 400)
+        self.assertIn('Username already exists', resp2.json().get('Error', ''))
+
+        # login with wrong credentials
+        bad = self.client.post('/api/login/', {'username': 'alice', 'password': 'bad'}, format='json')
+        self.assertEqual(bad.status_code, 400)
+
+        # successful login
+        login_resp = self.client.post('/api/login/', {'username': 'alice', 'password': 'strongpass'}, format='json')
+        self.assertEqual(login_resp.status_code, 200)
+        self.assertIn('Logged in successfully', login_resp.json().get('Success', ''))
+
+        # logout
+        out = self.client.post('/api/logout/')
+        self.assertEqual(out.status_code, 200)
+        self.assertIn('Logged out successfully', out.json().get('Success', ''))
+
+    def test_update_account(self):
+        # create and login user
+        user = User.objects.create_user(username='bob', password='pass123')
+        self.client.force_authenticate(user=user)
+
+        # change password but mismatch
+        resp = self.client.post('/api/account/update/', {
+            'new_password': 'newpass',
+            'confirm_password': 'different'
+        }, format='json')
+        self.assertEqual(resp.status_code, 400)
+        self.assertIn('Passwords do not match', resp.json().get('error', ''))
+
+        # too short password
+        resp2 = self.client.post('/api/account/update/', {
+            'new_password': 'short',
+            'confirm_password': 'short'
+        }, format='json')
+        self.assertEqual(resp2.status_code, 400)
+        self.assertIn('Password must be longer', resp2.json().get('error', ''))
+
+        # change username to an existing one
+        User.objects.create_user(username='charlie', password='xyz')
+        resp3 = self.client.post('/api/account/update/', {
+            'new_username': 'charlie'
+        }, format='json')
+        self.assertEqual(resp3.status_code, 400)
+        self.assertIn('Username already taken', resp3.json().get('error', ''))
+
+        # valid update
+        resp4 = self.client.post('/api/account/update/', {
+            'new_username': 'bob2',
+            'new_password': 'longenough',
+            'confirm_password': 'longenough'
+        }, format='json')
+        self.assertEqual(resp4.status_code, 200)
+        self.assertIn('Account updated successfully', resp4.json().get('success', ''))
+        user.refresh_from_db()
+        self.assertEqual(user.username, 'bob2')
+        self.assertTrue(user.check_password('longenough'))
+
+class PantryManagementTests(TestCase):
+    """Tests for adding, updating, and deleting pantry items."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='pantryuser', password='pwd')
+        Ingredient.objects.create(name='egg')
+        Ingredient.objects.create(name='flour')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+    def test_get_pantry_empty_then_add(self):
+        resp = self.client.get('/api/pantry/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.json(), [])
+
+        response = self.client.post('/api/pantry/add/', {'name': 'egg'}, format='json')
+        self.assertEqual(response.status_code, 201)
+
+        get_resp = self.client.get('/api/pantry/')
+        self.assertEqual(get_resp.status_code, 200)
+        self.assertIn('egg', [item['name'] for item in get_resp.json()])
+
+    def test_update_and_delete_item(self):
+        ingredient = Ingredient.objects.get(name='egg')
+        PantryItem.objects.create(user=self.user, ingredient=ingredient, quantity='1')
+
+        # update quantity
+        upd = self.client.put('/api/pantry/update/', {'name': 'egg', 'quantity': '2'}, format='json')
+        self.assertEqual(upd.status_code, 200)
+        self.assertIn('quantity updated to 2', upd.json().get('message', ''))
+
+        # attempt to update missing item
+        missing = self.client.put('/api/pantry/update/', {'name': 'bread', 'quantity': '1'}, format='json')
+        self.assertEqual(missing.status_code, 404)
+
+        # delete existing
+        delresp = self.client.delete('/api/pantry/delete/', {'name': 'egg'}, format='json')
+        self.assertEqual(delresp.status_code, 200)
+
+        # delete again
+        delagain = self.client.delete('/api/pantry/delete/', {'name': 'egg'}, format='json')
+        self.assertEqual(delagain.status_code, 404)
+
+class RecipeSuggestionTests(TestCase):
+    """Tests for the recipe suggestion endpoint based on pantry contents."""
+    def setUp(self):
+        self.user = User.objects.create_user(username='chef', password='cook')
+        self.client = APIClient()
+        self.client.force_authenticate(user=self.user)
+
+        # create ingredients and pantry
+        ing1 = Ingredient.objects.create(name='tomato')
+        ing2 = Ingredient.objects.create(name='cheese')
+        PantryItem.objects.create(user=self.user, ingredient=ing1)
+
+        # create recipes
+        Recipe.objects.create(
+            title='Tomato Soup',
+            ingredients="['tomato', 'water']",
+            instructions='step1\nstep2'
+        )
+        Recipe.objects.create(
+            title='Cheese Sandwich',
+            ingredients="['bread', 'cheese']",
+            instructions='make sandwich'
+        )
+
+        # allergen info for cheese
+        IngredientInfo.objects.create(name='cheese', allergens='dairy')
+
+    def test_suggest_with_pantry(self):
+        resp = self.client.get('/api/recipes/suggest/')
+        self.assertEqual(resp.status_code, 200)
+        data = resp.json()
+        # should include Tomato Soup but not Cheese Sandwich (no bread)
+        self.assertTrue(any(r['title']=='Tomato Soup' for r in data))
+        self.assertFalse(any(r['title']=='Cheese Sandwich' for r in data))
+
+        # limit parameter
+        resp2 = self.client.get('/api/recipes/suggest/?limit=1')
+        self.assertEqual(len(resp2.json()), 1)
+
+    def test_suggest_empty_pantry(self):
+        # remove existing pantry item
+        PantryItem.objects.filter(user=self.user).delete()
+        resp = self.client.get('/api/recipes/suggest/')
+        self.assertEqual(resp.status_code, 200)
+        self.assertIn('error', resp.json())
+        self.assertEqual(resp.json()['error'], 'Pantry is empty')
