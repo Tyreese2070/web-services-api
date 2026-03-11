@@ -9,6 +9,8 @@ Python 3.10 is required to use /admin dashboard without errors.
 
 Python 3.10 or later can be used just to use the site. Remove 3.10 from the venv initialisation to use the current version of python on your computer.
 
+Note: Download manually if git clone fails
+
 ```bash
 git clone https://github.com/Tyreese2070/web-services-api.git
 cd web-services-api
