@@ -81,7 +81,6 @@ def suggest_recipes(request):
     if not pantry_names:
         return Response({"error": "Pantry is empty"}, status=200)
     
-    # --- NEW SMARTER DB QUERY ---
     query = Q()
     match_conditions = []
     
@@ -96,7 +95,7 @@ def suggest_recipes(request):
         # Add up the points for every recipe
         total_matches = reduce(operator.add, match_conditions)
         
-        # Filter, Annotate (Score), Order by highest score, THEN limit to 200
+        # Filter, score, order by highest score, limit to 200
         recipes = Recipe.objects.filter(query).distinct().annotate(
             match_count=total_matches
         ).order_by('-match_count')[:200]

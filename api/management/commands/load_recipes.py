@@ -25,8 +25,8 @@ class Command(BaseCommand):
                         category=row.get("Main Ingredient", ""),
                         allergens=row.get("Allergens", "")))
                     
-                    IngredientInfo.objects.bulk_create(info_list, ignore_conflicts=True)
-                    self.stdout.write(self.style.SUCCESS(f"Loaded {len(info_list)} allergens"))
+                IngredientInfo.objects.bulk_create(info_list, ignore_conflicts=True)
+                self.stdout.write(self.style.SUCCESS(f"Loaded {len(info_list)} allergens"))
 
         else:
             self.stdout.write(self.style.ERROR(f"Allergens file not found: {allergens_path}"))
